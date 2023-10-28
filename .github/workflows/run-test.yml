@@ -45,7 +45,7 @@ jobs:
             const failureMap = {};
 
             matches.forEach((m) => {
-              const fileMatch = m.match(/\/__w\/test-actions\/test-actions\/(.+?\.js):/);
+              const fileMatch = m.match(/\/__w\/test-report-demo\/test-report-demo\/(.+?\.js):/);
               const caseMatch = m.match(/<testcase classname="([^"]+)"[^>]*>/);
               if (fileMatch && caseMatch) {
               failureMap[fileMatch[1]] = [...(failureMap[fileMatch[1]] || []), caseMatch[1]];
@@ -82,7 +82,7 @@ jobs:
         id: check_labels
         run: echo has_label=${{ contains(github.event.pull_request.labels.*.name, 'deploy-coverage-report') }} >> $GITHUB_OUTPUT
       - name: remove-label
-        if: steps.check_labels.outputs.has_label
+        if: steps.check_labels.outputs.has_label == 'true'
         uses: actions/github-script@v6
         with:
           script: |
