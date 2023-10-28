@@ -82,7 +82,7 @@ jobs:
         id: check_labels
         run: echo has_label=${{ contains(github.event.pull_request.labels.*.name, 'deploy-coverage-report') }} >> $GITHUB_OUTPUT
       - name: remove-label
-        if: steps.check_labels.outputs.has_label == 'true'
+        if: steps.check_labels.outputs.has_label
         uses: actions/github-script@v6
         with:
           script: |

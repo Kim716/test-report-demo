@@ -44,7 +44,7 @@ jobs:
         if: always()
         uses: actions/deploy-pages@v2
       - name: Add comment to PR
-        if: always()
+        if: success()
         uses: actions/github-script@v6
         with:
           script: |
