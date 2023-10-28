@@ -45,7 +45,7 @@ jobs:
             const failureMap = {};
 
             matches.forEach((m) => {
-              const fileMatch = m.match(/\/__w\/test-actions\/test-actions\/(.+?\.js):/);
+              const fileMatch = m.match(/\/__w\/test-report-demo\/test-report-demo\/(.+?\.js):/);
               const caseMatch = m.match(/<testcase classname="([^"]+)"[^>]*>/);
               if (fileMatch && caseMatch) {
               failureMap[fileMatch[1]] = [...(failureMap[fileMatch[1]] || []), caseMatch[1]];
