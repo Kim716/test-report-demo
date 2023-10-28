@@ -1,0 +1,56 @@
+name: Deploy static content to Pages
+
+on:
+  pull_request:
+    types:
+      - labeled
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR labels
+        id: check_labels
+        run: echo has_label=${{ contains(github.event.pull_request.labels.*.name, 'deploy-coverage-report') }} >> $GITHUB_OUTPUT
+      - name: Checkout
+        if: steps.check_labels.outputs.has_label == 'true'
+        uses: actions/checkout@v3
+      - run: npm install
+      - run: npx jest . --ci --collect-coverage
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: "./coverage/lcov-report"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        if: always()
+        uses: actions/deploy-pages@v2
+      - name: Add comment to PR
+        if: always()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: ${{github.event.number}},
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'this is report: https://kim716.github.io/test-report-demo/, ${{steps.check_labels.outputs.has_label}}',
+            })
