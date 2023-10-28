@@ -52,5 +52,5 @@ jobs:
               issue_number: ${{github.event.number}},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: 'this is report: https://kim716.github.io/test-report-demo/, ${{steps.check_labels.outputs.has_label}}',
+              body: 'this is report: https://kim716.github.io/test-report-demo/',
             })
