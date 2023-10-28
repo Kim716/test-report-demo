@@ -1,0 +1,100 @@
+name: Tests
+
+on:
+  push: {}
+
+jobs:
+  test_and_report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    container:
+      image: node:16-slim
+    steps:
+      - uses: actions/checkout@v3
+      - name: node_modules Cache
+        id: cache-npm
+        uses: actions/cache@v3.3.1
+        with:
+          path: |-
+            node_modules/
+          key: "${{ runner.os }}-npm-${{ hashFiles('package.json') }}"
+      - run: echo "The npm cache is ${{ steps.cache-npm.outputs.cache-hit == 'true' && 'hit' || 'not hit' }}."
+      - run: npm install
+      - run: npx jest . --showSeed
+      - name: Read file content
+        id: read-file
+        if: failure()
+        run: |
+          file_content=$(cat reports/report.xml)
+          echo content=$file_content >> $GITHUB_OUTPUT
+      - name: Failed report comment
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const num = (await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  commit_sha: context.sha,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+              })).data[0].number
+            const xmlString = '${{steps.read-file.outputs.content}}';
+            const regex = /<testcase[^>]*>([\s\S]*?)<\/testcase>/g;
+            const matches = xmlString.match(regex) || [];
+            const failureMap = {};
+
+            matches.forEach((m) => {
+              const fileMatch = m.match(/\/__w\/test-actions\/test-actions\/(.+?\.js):/);
+              const caseMatch = m.match(/<testcase classname="([^"]+)"[^>]*>/);
+              if (fileMatch && caseMatch) {
+              failureMap[fileMatch[1]] = [...(failureMap[fileMatch[1]] || []), caseMatch[1]];
+                }
+            });
+
+            let comment = '';
+            Object.entries(failureMap).forEach(([file, cases]) => {
+              const caseRows = cases.reduce((acc, caseName) => {
+                return acc + `<h4>${caseName}</h4>`
+              }, '')
+
+              comment += `<details>
+                <summary>:x: Failed file: <code>${file}</code></summary>    
+                    <h2>Test Name</h2>
+                    ${caseRows}
+                </details>
+              `
+            });
+            const body = comment.trim();
+            github.rest.issues.createComment({
+              issue_number: num,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            })
+
+  remove-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Check PR labels
+        id: check_labels
+        run: echo has_label=${{ contains(github.event.pull_request.labels.*.name, 'deploy-coverage-report') }} >> $GITHUB_OUTPUT
+      - name: remove-label
+        if: steps.check_labels.outputs.has_label
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const num = (await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  commit_sha: context.sha,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                })).data[0].number
+
+            github.rest.issues.removeLabel({
+              name: 'deploy-coverage-report',
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: num
+            });
