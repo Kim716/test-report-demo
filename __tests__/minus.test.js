@@ -11,3 +11,7 @@ test("minus 22222222", () => {
 test("minus 333333333", () => {
   expect(minus(3, 3)).toBe(0);
 });
+
+test("minus 444444", () => {
+  expect(minus(3, 3)).toBe(1);
+});
